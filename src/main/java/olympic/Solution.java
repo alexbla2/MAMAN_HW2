@@ -19,29 +19,34 @@ public class Solution {
     public static void main(String[] args) {
         dropTables();
         createTables();
-//        Sport sport = new Sport();
-//            sport.setId(1);
-//            sport.setName("Tenis");
-//            sport.setCity("Hebron");
-//        System.out.println(addSport(sport).toString());
+        Sport sport = new Sport();
+            sport.setId(1);
+            sport.setName("Tenis");
+            sport.setCity("Hebron");
+        System.out.println(addSport(sport).toString());
 //        System.out.println("Creating athletes Table");
 //        createTables();
-//        Athlete athlete1 = new Athlete();
-//        athlete1.setId(7);
-//        athlete1.setName("Eial");
-//        athlete1.setCountry(null);
-//        athlete1.setIsActive(false);
-//        Athlete athlete2 = new Athlete();
-//        athlete2.setId(2);
-//        athlete2.setName("Alex");
-//        athlete2.setCountry("UK");
-//        athlete2.setIsActive(true);
+        Athlete athlete1 = new Athlete();
+        athlete1.setId(7);
+        athlete1.setName("Eial");
+        athlete1.setCountry("USA");
+        athlete1.setIsActive(false);
+        Athlete athlete2 = new Athlete();
+        athlete2.setId(2);
+        athlete2.setName("Alex");
+        athlete2.setCountry("UK");
+        athlete2.setIsActive(true);
 //        System.out.println("adding athlete1");
-//        System.out.println(addAthlete(athlete1).toString());
+        System.out.println(addAthlete(athlete1).toString());
+        System.out.println(addAthlete(athlete2).toString());
 //        System.out.println("adding athlete2");
-//        addAthlete(athlete2);
 //        clearTables();
 //        dropTables();
+        System.out.println(getAthleteProfile(1).toString());
+        System.out.println(getAthleteProfile(2).toString());
+        System.out.println(getAthleteProfile(7).toString());
+        System.out.println(getSport(1).toString());
+        System.out.println(getSport(2).toString());
     }
 
 
@@ -152,6 +157,31 @@ public class Solution {
     public static void clearTables() {
         clearAthletesTable();
         clearSportsTable();
+        clearParticipantsTable();
+        //clear other tables
+    }
+
+    private static void clearParticipantsTable() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("DELETE FROM Participants");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
     }
 
     private static void clearAthletesTable() {
@@ -203,11 +233,11 @@ public class Solution {
     public static void dropTables() {
         dropAthletesTable();
         dropSportsTable();
-        dropParticipants();
+        dropParticipantsTable();
         //more drops
     }
 
-    private static void dropParticipants() {
+    private static void dropParticipantsTable() {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
         try {
@@ -329,16 +359,18 @@ public class Solution {
                     " WHERE Id =?");
             pstmt.setInt(1,athleteId);
             ResultSet results = pstmt.executeQuery();
-            DBConnector.printResults(results); //TODO create Athelete object to return - check
-            //if exists
-            Athlete athlete = new Athlete();
-//            athlete.setId(athleteId);
-//            athlete.setName();
-//            athlete.setCountry();
-//            athlete.setIsActive();
-            results.close();
-            return athlete;
-
+            if(results.next() == false){ //no such athlete
+                results.close();
+                return Athlete.badAthlete();
+            }else{
+                Athlete athlete = new Athlete();
+                athlete.setId(results.getInt(1));
+                athlete.setName(results.getString(2));
+                athlete.setCountry(results.getString(3));
+                athlete.setIsActive(results.getBoolean(4));
+                results.close();
+                return athlete;
+            }
         } catch (SQLException e) {
             return Athlete.badAthlete();
             //e.printStackTrace()();
@@ -404,7 +436,6 @@ public class Solution {
             pstmt.setInt(1,sport.getId());
             pstmt.setString(2, sport.getName());
             pstmt.setString(3, sport.getCity());
-            //check if coutner is zero
             pstmt.execute();
 
         } catch (SQLException e) {
@@ -446,17 +477,18 @@ public class Solution {
                     " WHERE Id =?");
             pstmt.setInt(1,sportId);
             ResultSet results = pstmt.executeQuery();
-            DBConnector.printResults(results); //TODO create Sports object to return - check
-            //if exists
-            Sport sport = new Sport();
-//            sport.setId(athleteId);
-//            sport.setName();
-//            sport.setCity();
-//            sport.setAthletesCount();
-            results.close();
-            return sport;
-            //if doesnt exists return badSport here!
-
+            if(results.next() == false){ //no such sport
+                results.close();
+                return Sport.badSport();
+            }else{
+                Sport sport = new Sport();
+                sport.setId(results.getInt(1));
+                sport.setName(results.getString(2));
+                sport.setCity(results.getString(3));
+                sport.setAthletesCount(results.getInt(4));
+                results.close();
+                return sport;
+            }
         } catch (SQLException e) {
             return Sport.badSport();
             //e.printStackTrace()();
@@ -483,7 +515,6 @@ public class Solution {
         try {
             pstmt = connection.prepareStatement(
                     "DELETE FROM Sports " +
-
                             "where Id = ?");
             pstmt.setInt(1,sport.getId());
             int affectedRows = pstmt.executeUpdate();

@@ -3,19 +3,261 @@ package olympic;
 import olympic.business.Athlete;
 import olympic.business.ReturnValue;
 import olympic.business.Sport;
+import olympic.data.DBConnector;
+import olympic.data.PostgreSQLErrorCodes;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 
-import static olympic.business.ReturnValue.OK;
+import static olympic.business.ReturnValue.*;
 
 public class Solution {
-    public static void createTables() { }
 
-    public static void clearTables() { }
+    public static void main(String[] args) {
 
-    public static void dropTables() { }
+//        System.out.println("Creating athletes Table");
+//        createTables();
+//        Athlete athlete1 = new Athlete();
+//        athlete1.setId(7);
+//        athlete1.setName("Eial");
+//        athlete1.setCountry(null);
+//        athlete1.setIsActive(false);
+//        Athlete athlete2 = new Athlete();
+//        athlete2.setId(2);
+//        athlete2.setName("Alex");
+//        athlete2.setCountry("UK");
+//        athlete2.setIsActive(true);
+//        System.out.println("adding athlete1");
+//        System.out.println(addAthlete(athlete1).toString());
+//        System.out.println("adding athlete2");
+//        addAthlete(athlete2);
+//        clearTables();
+//        dropTables();
+    }
 
-    public static ReturnValue addAthlete(Athlete athlete) { return OK; }
+
+    public static void createTables() {
+
+        createAthletesTable();
+        createSportsTable();
+        //create more tables
+    }
+
+    private static void createAthletesTable(){
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+
+            pstmt = connection.prepareStatement("CREATE TABLE Athletes\n" +
+                    "(\n" +
+                    "    Id INTEGER ,\n" +
+                    "    Name TEXT NOT NULL ,\n" +
+                    "    Country TEXT NOT NULL ,\n" +
+                    "    Active BOOLEAN NOT NULL ,\n" +
+                    "    PRIMARY KEY (Id),\n" +
+                    "    CHECK (Id > 0)\n" +
+                    ")");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
+    }
+
+    private static void createSportsTable(){
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+
+            pstmt = connection.prepareStatement("CREATE TABLE Sports\n" +
+                    "(\n" +
+                    "    Id INTEGER ,\n" +
+                    "    Name TEXT NOT NULL ,\n" +
+                    "    City TEXT NOT NULL ,\n" +
+                    "    Counter INTEGER DEFAULT 0,\n" +
+                    "    PRIMARY KEY (Id),\n" +
+                    "    CHECK (Id > 0)\n" +
+                    "    CHECK (Counter >= 0)\n" +
+                    ")");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
+    }
+
+    public static void clearTables() {
+        clearAthletesTable();
+        clearSportsTable();
+    }
+
+    private static void clearAthletesTable() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("DELETE FROM Athletes");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
+    }
+
+    private static void clearSportsTable() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("DELETE FROM Sports");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
+    }
+
+    public static void dropTables() {
+        dropAthletesTable();
+        dropSportsTable();
+        //more drops
+    }
+
+    private static void dropAthletesTable() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("DROP TABLE IF EXISTS Athletes");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
+    }
+
+    private static void dropSportsTable() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("DROP TABLE IF EXISTS Sports");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
+    }
+
+
+
+    public static ReturnValue addAthlete(Athlete athlete)
+    {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("INSERT INTO Athletes" +
+                    " VALUES (?, ?, ?, ?)");
+            pstmt.setInt(1,athlete.getId());
+            pstmt.setString(2, athlete.getName());
+            pstmt.setString(3, athlete.getCountry());
+            pstmt.setBoolean(4,athlete.getIsActive());
+            pstmt.execute();
+
+        } catch (SQLException e) {
+            if(Integer.valueOf(e.getSQLState()) ==
+                    PostgreSQLErrorCodes.CHECK_VIOLATION.getValue()
+                ||  Integer.valueOf(e.getSQLState()) ==
+                        PostgreSQLErrorCodes.NOT_NULL_VIOLATION.getValue()){
+                    return BAD_PARAMS;
+            }
+            if(Integer.valueOf(e.getSQLState()) ==
+                    PostgreSQLErrorCodes.UNIQUE_VIOLATION.getValue()){
+                return ALREADY_EXISTS;
+            }
+
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                return ERROR;
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                return ERROR;
+                //e.printStackTrace()();
+            }
+        }
+        return OK;
+    }
 
     public static Athlete getAthleteProfile(Integer athleteId) {
         return Athlete.badAthlete();

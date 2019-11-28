@@ -17,39 +17,40 @@ import static olympic.business.ReturnValue.*;
 public class Solution {
 
     public static void main(String[] args) {
-        clearTables();
+        dropTables();
+//        clearTables();
         createTables();
-        Sport sport = new Sport();
-            sport.setId(1);
-            sport.setName("Tenis");
-            sport.setCity("Hebron");
-        System.out.println(addSport(sport).toString());
-        Athlete athlete1 = new Athlete();
-        athlete1.setId(7);
-        athlete1.setName("Eial");
-        athlete1.setCountry("USA");
-        athlete1.setIsActive(false);
-        Athlete athlete2 = new Athlete();
-        athlete2.setId(2);
-        athlete2.setName("Alex");
-        athlete2.setCountry("UK");
-        athlete2.setIsActive(true);
-        System.out.println("adding athlete1");
-        System.out.println(addAthlete(athlete1).toString());
-        System.out.println(addAthlete(athlete2).toString());
-        System.out.println("adding athlete2");
-        System.out.println(athleteJoinSport(1,7));
-        System.out.println(getSport(1));
-        System.out.println(athleteLeftSport(1,7));
-        System.out.println(getSport(1));
-        System.out.println(athleteJoinSport(1,7));
-        System.out.println(getSport(1));
-        System.out.println(athleteJoinSport(1,2));
-        System.out.println(getSport(1));
-        System.out.println(athleteLeftSport(1,7));
-        System.out.println(getSport(1));
-        System.out.println(athleteLeftSport(1,2));
-        System.out.println(getSport(1));
+//        Sport sport = new Sport();
+//            sport.setId(1);
+//            sport.setName("Tenis");
+//            sport.setCity("Hebron");
+//        System.out.println(addSport(sport).toString());
+//        Athlete athlete1 = new Athlete();
+//        athlete1.setId(7);
+//        athlete1.setName("Eial");
+//        athlete1.setCountry("USA");
+//        athlete1.setIsActive(false);
+//        Athlete athlete2 = new Athlete();
+//        athlete2.setId(2);
+//        athlete2.setName("Alex");
+//        athlete2.setCountry("UK");
+//        athlete2.setIsActive(true);
+//        System.out.println("adding athlete1");
+//        System.out.println(addAthlete(athlete1).toString());
+//        System.out.println(addAthlete(athlete2).toString());
+//        System.out.println("adding athlete2");
+//        System.out.println(athleteJoinSport(1,7));
+//        System.out.println(getSport(1));
+//        System.out.println(athleteLeftSport(1,7));
+//        System.out.println(getSport(1));
+//        System.out.println(athleteJoinSport(1,7));
+//        System.out.println(getSport(1));
+//        System.out.println(athleteJoinSport(1,2));
+//        System.out.println(getSport(1));
+//        System.out.println(athleteLeftSport(1,7));
+//        System.out.println(getSport(1));
+//        System.out.println(athleteLeftSport(1,2));
+//        System.out.println(getSport(1));
     }
 
 
@@ -58,7 +59,73 @@ public class Solution {
         createAthletesTable();
         createSportsTable();
         createParticipantsTable();
+        createWinnersTable();
+        createFriendsTable();
         //create more tables
+    }
+
+    private static void createFriendsTable() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+
+            pstmt = connection.prepareStatement("CREATE TABLE Friends\n" +
+                    "(\n" +
+                    "    Aid INTEGER ,\n" +
+                    "    Sid INTEGER ,\n" +
+                    "    PRIMARY KEY (Aid,Sid),\n" +
+                    "    FOREIGN KEY (Aid) REFERENCES Athletes (id) ON DELETE CASCADE,\n" +
+                    "    FOREIGN KEY (Sid) REFERENCES Sports (id) ON DELETE CASCADE\n" +
+                    ")");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
+    }
+
+    private static void createWinnersTable() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+
+            pstmt = connection.prepareStatement("CREATE TABLE Winners\n" +
+                    "(\n" +
+                    "    Aid INTEGER ,\n" +
+                    "    Sid INTEGER ,\n" +
+                    "    Place INTEGER ,\n" +
+                    "    PRIMARY KEY (Aid,Sid),\n" +
+                    "    FOREIGN KEY (Aid) REFERENCES Athletes (id) ON DELETE CASCADE,\n" +
+                    "    FOREIGN KEY (Sid) REFERENCES Sports (id) ON DELETE CASCADE,\n" +
+                    "    CHECK (Place > 0 AND Place < 4 )\n" +
+                    ")");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
     }
 
     private static void createParticipantsTable() {
@@ -135,9 +202,9 @@ public class Solution {
                     "    Id INTEGER ,\n" +
                     "    Name TEXT NOT NULL ,\n" +
                     "    City TEXT NOT NULL ,\n" +
-                    "    Counter INTEGER DEFAULT 0,\n" +
+                    "    Counter INTEGER,\n" +
                     "    PRIMARY KEY (Id),\n" +
-                    "    CHECK (Id > 0)\n" +
+                    "    CHECK (Id > 0),\n" +
                     "    CHECK (Counter > -1)\n" +
                     ")");
             pstmt.execute();
@@ -162,7 +229,55 @@ public class Solution {
         clearAthletesTable();
         clearSportsTable();
         clearParticipantsTable();
+        clearWinnersTables();
+        clearFriendsTable();
         //clear other tables
+    }
+
+    private static void clearFriendsTable() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("DELETE FROM Friends");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
+    }
+
+    private static void clearWinnersTables() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("DELETE FROM Winners");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
     }
 
     private static void clearParticipantsTable() {
@@ -238,7 +353,55 @@ public class Solution {
         dropAthletesTable();
         dropSportsTable();
         dropParticipantsTable();
+        dropWinnersTable();
+        dropFriendsTable();
         //more drops
+    }
+
+    private static void dropFriendsTable() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("DROP TABLE IF EXISTS Friends");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
+    }
+
+    private static void dropWinnersTable() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("DROP TABLE IF EXISTS Winners");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
     }
 
     private static void dropParticipantsTable() {
@@ -436,10 +599,11 @@ public class Solution {
         PreparedStatement pstmt = null;
         try {
             pstmt = connection.prepareStatement("INSERT INTO Sports" +
-                    " VALUES (?, ?, ?)");
+                    " VALUES (?, ?, ?,?)");
             pstmt.setInt(1,sport.getId());
             pstmt.setString(2, sport.getName());
             pstmt.setString(3, sport.getCity());
+            pstmt.setInt(4, 0); //coutner set to 0
             pstmt.execute();
 
         } catch (SQLException e) {

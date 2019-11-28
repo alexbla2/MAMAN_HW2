@@ -17,15 +17,13 @@ import static olympic.business.ReturnValue.*;
 public class Solution {
 
     public static void main(String[] args) {
-        dropTables();
+        clearTables();
         createTables();
         Sport sport = new Sport();
             sport.setId(1);
             sport.setName("Tenis");
             sport.setCity("Hebron");
         System.out.println(addSport(sport).toString());
-//        System.out.println("Creating athletes Table");
-//        createTables();
         Athlete athlete1 = new Athlete();
         athlete1.setId(7);
         athlete1.setName("Eial");
@@ -36,17 +34,22 @@ public class Solution {
         athlete2.setName("Alex");
         athlete2.setCountry("UK");
         athlete2.setIsActive(true);
-//        System.out.println("adding athlete1");
+        System.out.println("adding athlete1");
         System.out.println(addAthlete(athlete1).toString());
         System.out.println(addAthlete(athlete2).toString());
-//        System.out.println("adding athlete2");
-//        clearTables();
-//        dropTables();
-        System.out.println(getAthleteProfile(1).toString());
-        System.out.println(getAthleteProfile(2).toString());
-        System.out.println(getAthleteProfile(7).toString());
-        System.out.println(getSport(1).toString());
-        System.out.println(getSport(2).toString());
+        System.out.println("adding athlete2");
+        System.out.println(athleteJoinSport(1,7));
+        System.out.println(getSport(1));
+        System.out.println(athleteLeftSport(1,7));
+        System.out.println(getSport(1));
+        System.out.println(athleteJoinSport(1,7));
+        System.out.println(getSport(1));
+        System.out.println(athleteJoinSport(1,2));
+        System.out.println(getSport(1));
+        System.out.println(athleteLeftSport(1,7));
+        System.out.println(getSport(1));
+        System.out.println(athleteLeftSport(1,2));
+        System.out.println(getSport(1));
     }
 
 
@@ -135,6 +138,7 @@ public class Solution {
                     "    Counter INTEGER DEFAULT 0,\n" +
                     "    PRIMARY KEY (Id),\n" +
                     "    CHECK (Id > 0)\n" +
+                    "    CHECK (Counter > -1)\n" +
                     ")");
             pstmt.execute();
         } catch (SQLException e) {
@@ -547,29 +551,63 @@ public class Solution {
     public static ReturnValue athleteJoinSport(Integer sportId, Integer athleteId) {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
+        PreparedStatement pstmt1 = null;
         try {
-            //TODO check if sport and athelete exists
-            //then get the isActive accord - change payment accord.
-            pstmt = connection.prepareStatement("INSERT INTO Participants" +
-                    " VALUES (?, ?, ?)");
-            pstmt.setInt(1,athleteId);
-            pstmt.setInt(2,sportId);
-
-
-            pstmt.execute();
-
+            Athlete athlete = getAthleteProfile(athleteId);
+            Sport sport = getSport(sportId);
+            if(athlete.equals(Athlete.badAthlete()) || sport.equals(Sport.badSport())){ //no such athlete or sport
+                return NOT_EXISTS;
+            }else{
+                pstmt = connection.prepareStatement("SELECT Aid,Sid,Payment FROM Participants" +
+                        " WHERE Aid =? AND Sid=?");
+                pstmt.setInt(1,athleteId);
+                pstmt.setInt(2,sportId);
+                ResultSet results = pstmt.executeQuery();
+                if(results.next()){ //already exists in paricipants
+                    results.close();
+                    return ALREADY_EXISTS;
+                }else{ //all good - lets add!
+                    pstmt = connection.prepareStatement("INSERT INTO Participants" +
+                            " VALUES (?, ?, ?)");
+                    pstmt.setInt(1,athleteId);
+                    pstmt.setInt(2,sportId);
+                    if(athlete.getIsActive()){ // no payment needed
+                        pstmt.setInt(3,0);
+                        //update counter
+                        pstmt1 = connection.prepareStatement(
+                                "UPDATE Sports " +
+                                        "SET counter = counter + ? " +
+                                        "where id = ?");
+                        pstmt1.setInt(1,1);
+                        pstmt1.setInt(2, sport.getId());
+                        pstmt1.executeUpdate();
+                    }else{ //observer - need to pay 100$
+                        pstmt.setInt(3,100);
+                    }
+                    pstmt.execute();
+                }
+                results.close();
+            }
         } catch (SQLException e) {
+            return ERROR;
             //e.printStackTrace()();
         }
         finally {
             try {
-                pstmt.close();
+                if(pstmt != null){
+                    pstmt.close();
+                }
+                if(pstmt1 != null){
+                    pstmt1.close();
+                }
             } catch (SQLException e) {
+                return ERROR;
                 //e.printStackTrace()();
             }
             try {
                 connection.close();
             } catch (SQLException e) {
+                return ERROR;
                 //e.printStackTrace()();
             }
         }
@@ -577,7 +615,50 @@ public class Solution {
     }
 
     public static ReturnValue athleteLeftSport(Integer sportId, Integer athleteId) {
-        return OK;
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            Athlete athlete = getAthleteProfile(athleteId);
+            pstmt = connection.prepareStatement(
+                    "DELETE FROM Participants " +
+                            "where Aid = ? AND Sid= ?");
+            pstmt.setInt(1,athleteId);
+            pstmt.setInt(2,sportId);
+            int affectedRows = pstmt.executeUpdate();
+            if(affectedRows == 0){
+                return NOT_EXISTS;
+            }else{
+                //update counter
+                if(athlete.getIsActive()){
+                    pstmt = connection.prepareStatement(
+                            "UPDATE Sports " +
+                                    "SET counter = counter - ? " +
+                                    "where id = ?");
+                    pstmt.setInt(1,1);
+                    pstmt.setInt(2, sportId);
+                    pstmt.executeUpdate();
+                }
+                return OK;
+            }
+        } catch (SQLException e) {
+            System.out.println("Delete Participant exception detected!");
+            return ERROR;
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                return ERROR;
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                return ERROR;
+                //e.printStackTrace()();
+            }
+        }
     }
 
     public static ReturnValue confirmStanding(Integer sportId, Integer athleteId, Integer place) {

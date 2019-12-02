@@ -85,6 +85,7 @@ public class Solution {
         System.out.println(athleteJoinSport(40,3).toString());
         System.out.println(confirmStanding(40,2,3).toString()); //or is 3th
         System.out.println(confirmStanding(40,3,1).toString()); //or is 3th
+        System.out.println(getAthleteMedals(3).toString()); //or is 3th
 //        System.out.println(athleteDisqualified(40,2).toString()); //alex is diss
 
 //        System.out.println(changePayment(2,50,50).toString()); //active cant pay
@@ -1158,8 +1159,12 @@ public class Solution {
         }
         finally {
             try {
-                pstmt.close();
-                pstmt1.close();
+                if(pstmt != null){
+                    pstmt.close();
+                }
+                if(pstmt1 != null){
+                    pstmt1.close();
+                }
             } catch (SQLException e) {
                 return ERROR;
                 //e.printStackTrace()();
@@ -1485,14 +1490,94 @@ public class Solution {
         }
     }
 
-    //TODO
+    //TODO - check
     public static String getMostPopularCity() {
-        return "";
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("SELECT city FROM Sports" +
+                    " GROUP BY city ORDER BY AVG(counter) DESC, city ASC");
+            ResultSet results = pstmt.executeQuery();
+            if(!results.next()){ //no cities
+                return "";
+            }
+            return results.getString(1);
+        } catch (SQLException e) {
+            return null;
+        }
+        //e.printStackTrace()();
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                return null;
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                return null;
+                //e.printStackTrace()();
+            }
+        }
     }
 
-    //TODO - advanced  ------------------------------------------------------
+    //TODO-------------------------- advanced  ------------------------------------------------------
+
+
+    //check this func
     public static ArrayList<Integer> getAthleteMedals(Integer athleteId) {
-        return new ArrayList<>();
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        ArrayList<Integer> arrayList = new ArrayList<>();
+        ArrayList<Integer> errorList = new ArrayList<>();
+        for(int i=0; i<3; i++){
+            errorList.add(0);
+        }
+        try {
+            pstmt = connection.prepareStatement("SELECT COUNT(*) FROM Winners" +
+                    " WHERE Aid = ? AND PLACE = ?");
+            pstmt.setInt(1, athleteId);
+            pstmt.setInt(2, 1); //gold medal
+            ResultSet results = pstmt.executeQuery();
+            if(!results.next()){ //no gold medals
+                arrayList.add(0);
+            }else{
+                arrayList.add(results.getInt(1));
+            }
+            pstmt.setInt(2, 2); //silver medal
+            results = pstmt.executeQuery();
+            if(!results.next()){ //no silver medals
+                arrayList.add(0);
+            }else{
+                arrayList.add(results.getInt(1));
+            }
+            pstmt.setInt(2, 3); //bronze medal
+            results = pstmt.executeQuery();
+            if(!results.next()){ //no bronze medals
+                arrayList.add(0);
+            }else{
+                arrayList.add(results.getInt(1));
+            }
+            return arrayList;
+        } catch (SQLException e) {
+            return errorList;
+        }
+        //e.printStackTrace()();
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                return errorList;
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                return errorList;
+                //e.printStackTrace()();
+            }
+        }
     }
 
     public static ArrayList<Integer> getMostRatedAthletes() {

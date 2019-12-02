@@ -22,7 +22,7 @@ public class Solution {
         clearTables();
 
         Athlete athlete1 = new Athlete();
-        athlete1.setId(7);
+        athlete1.setId(1);
         athlete1.setName("Eial");
         athlete1.setCountry("USA");
         athlete1.setIsActive(false);
@@ -34,11 +34,10 @@ public class Solution {
         athlete2.setIsActive(true);
 
         Athlete athlete3 = new Athlete();
-        athlete3.setId(10);
+        athlete3.setId(3);
         athlete3.setName("or");
         athlete3.setCountry("Brazil");
         athlete3.setIsActive(true);
-
 
 
         System.out.println("adding athlete1");
@@ -52,20 +51,68 @@ public class Solution {
         sport.setId(50);
         sport.setCity("haifa");
         sport.setName("football");
+
+        Sport sport2 =new Sport();
+        sport2.setId(40);
+        sport2.setCity("TLV");
+        sport2.setName("basketball");
         //System.out.println("adding sport");
+//        System.out.println(makeFriends(2,7).toString());
+//        System.out.println(makeFriends(2,7).toString());
+//        System.out.println(makeFriends(7,2).toString());
+//        System.out.println(makeFriends(10,7).toString());
+//
+//        System.out.println(removeFriendship(10,8).toString());
+//        System.out.println(removeFriendship(7,10).toString());
 
 
-        System.out.println(makeFriends(2,7).toString());
-        System.out.println(makeFriends(2,7).toString());
-        System.out.println(makeFriends(7,2).toString());
-        System.out.println(makeFriends(10,7).toString());
+        System.out.println(addSport(sport).toString());
+        System.out.println(addSport(sport2).toString());
+        System.out.println(athleteJoinSport(50,1).toString());
+        System.out.println(athleteJoinSport(50,3).toString());
+        System.out.println(athleteJoinSport(50,7).toString()); //error
 
-        System.out.println(removeFriendship(10,8).toString());
-        System.out.println(removeFriendship(7,10).toString());
+        System.out.println(athleteJoinSport(40,1).toString());
+        System.out.println(athleteJoinSport(40,2).toString());
 
 
-//        System.out.println(addSport(sport).toString());
-//        System.out.println(athleteJoinSport(50,2).toString());
+        System.out.println(confirmStanding(50,2,1).toString()); //error not in
+        System.out.println(confirmStanding(50,1,1).toString()); //error observers
+        System.out.println(confirmStanding(50,3,1).toString()); //or is 1th
+        System.out.println(confirmStanding(50,3,2).toString()); //or is 2th
+
+        System.out.println(confirmStanding(40,2,2).toString()); //alex is 2th
+        System.out.println(athleteJoinSport(40,3).toString());
+        System.out.println(confirmStanding(40,2,3).toString()); //or is 3th
+        System.out.println(confirmStanding(40,3,1).toString()); //or is 3th
+//        System.out.println(athleteDisqualified(40,2).toString()); //alex is diss
+
+//        System.out.println(changePayment(2,50,50).toString()); //active cant pay
+//        System.out.println(changePayment(1,50,70).toString()); //eyal pays 70
+//        System.out.println(changePayment(1,50,-10).toString()); //error
+//        System.out.println(changePayment(4,50,100).toString()); //error no such id
+
+        System.out.println(getTotalNumberOfMedalsFromCountry("USA").toString()); //none
+        System.out.println(getTotalNumberOfMedalsFromCountry("Brazil").toString()); //1
+        System.out.println(getTotalNumberOfMedalsFromCountry("seeker").toString()); //none
+
+
+//        System.out.println(getIncomeFromSport(50).toString()); //none
+//        System.out.println(getIncomeFromSport(40).toString()); //none
+//
+//
+        System.out.println(getBestCountry().toString()); //none
+
+
+
+
+
+
+
+
+
+
+
 //
 //        System.out.println(confirmStanding(50,2,2).toString());
 //        System.out.println(athleteDisqualified(50,5).toString());
@@ -79,7 +126,99 @@ public class Solution {
         createParticipantsTable();
         createWinnersTable();
         createFriendsTable();
-        //create more tables
+        createViews();
+    }
+
+    private static void createViews() {
+        createActiveParticipantsView();
+        createObserversView();
+        createAthletesWinnersView();
+    }
+
+    private static void createObserversView() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("CREATE VIEW ObserversView AS\n" +
+                    "(\n" +
+                    "    SELECT Aid,Sid,Payment \n" +
+                    "    FROM Participants INNER JOIN Athletes \n" +
+                    "    ON (Athletes.Active = FALSE AND Athletes.Id = Participants.Aid)  \n" +
+                    ")");
+            pstmt.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
+    }
+
+    private static void createActiveParticipantsView() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+
+            pstmt = connection.prepareStatement("CREATE VIEW ActiveParticipantsView AS\n" +
+                    "(\n" +
+                    "    SELECT Aid,Sid,Payment \n" +
+                    "    FROM Participants INNER JOIN Athletes \n" +
+                    "    ON (Athletes.Active = TRUE AND Athletes.Id = Participants.Aid)  \n" +
+                    ")");
+            pstmt.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
+    }
+
+    private static void createAthletesWinnersView() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+
+            pstmt = connection.prepareStatement("CREATE VIEW AthletesWinnersView AS\n" +
+                    "(\n" +
+                    "    SELECT Id,Name,Country,Active,Sid,Place \n" +
+                    "    FROM  Athletes INNER JOIN Winners \n" +
+                    "    ON (Athletes.Id = Winners.Aid) \n" +
+                    ")");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
     }
 
     private static void createFriendsTable() {
@@ -158,7 +297,8 @@ public class Solution {
                     "    Payment INTEGER ,\n" +
                     "    PRIMARY KEY (Aid,Sid),\n" +
                     "    FOREIGN KEY (Aid) REFERENCES Athletes (id) ON DELETE CASCADE,\n" +
-                    "    FOREIGN KEY (Sid) REFERENCES Sports (id) ON DELETE CASCADE\n" +
+                    "    FOREIGN KEY (Sid) REFERENCES Sports (id) ON DELETE CASCADE,\n" +
+                    "    CHECK (Payment >-1)\n" +
                     ")");
             pstmt.execute();
         } catch (SQLException e) {
@@ -373,7 +513,84 @@ public class Solution {
         dropParticipantsTable();
         dropWinnersTable();
         dropFriendsTable();
+        dropViews();
         //more drops
+    }
+
+    private static void dropViews() {
+        dropAthletesWinnersView();
+        dropObserversView();
+        dropActiveParticipantsView();
+        //more views to drop
+    }
+
+    private static void dropObserversView() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("DROP VIEW IF EXISTS ObserversView");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
+    }
+
+    private static void dropActiveParticipantsView() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("DROP VIEW IF EXISTS ActiveParticipantsView");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
+    }
+
+    private static void dropAthletesWinnersView() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("DROP VIEW IF EXISTS AthletesWinnersView");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
     }
 
     private static void dropFriendsTable() {
@@ -843,32 +1060,24 @@ public class Solution {
     }
 
     public static ReturnValue confirmStanding(Integer sportId, Integer athleteId, Integer place) {
-        if(place>3 || place <1)
-            return BAD_PARAMS;
-
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
         PreparedStatement pstmt1 = null;
 
         try {
-            Athlete athlete = getAthleteProfile(athleteId);
-            Sport sport = getSport(sportId);
-
-            pstmt = connection.prepareStatement("SELECT Aid,Sid,Payment FROM Participants" +
+            pstmt = connection.prepareStatement("SELECT * FROM ActiveParticipantsView" +
                     " WHERE Aid =? AND Sid=?");
             pstmt.setInt(1,athleteId);
             pstmt.setInt(2,sportId);
             ResultSet results = pstmt.executeQuery();
 
-
-            if(!athlete.getIsActive() || !results.next() || athlete.equals(Athlete.badAthlete()) || sport.equals(Sport.badSport())){ //no such athlete or sport or the athlete is not participating in the sport
+            if(!results.next()){ //no such athlete or sport or the athlete is not participating in the sport
                 results.close();
                 return NOT_EXISTS;
             }else {
                 results.close();
-
                 //check if athlete already got a medal
-                pstmt1 = connection.prepareStatement("SELECT Aid,Sid,Place FROM Winners" +
+                pstmt1 = connection.prepareStatement("SELECT * FROM Winners" +
                         " WHERE Aid =? AND Sid=?");
                 pstmt1.setInt(1,athleteId);
                 pstmt1.setInt(2,sportId);
@@ -882,8 +1091,7 @@ public class Solution {
                     pstmt.setInt(2, athleteId);
                     pstmt.setInt(3, sportId);
                     pstmt.executeUpdate();
-                }else {
-
+                }else { //his first medal in this sport - lets add it!
                     pstmt = connection.prepareStatement("INSERT INTO Winners" +
                             " VALUES (?, ?, ?)");
                     pstmt.setInt(1, athleteId);
@@ -892,9 +1100,12 @@ public class Solution {
                     pstmt.execute();
                 }
             }
-        } catch (SQLException e) {
-            return ERROR;
-            //e.printStackTrace()();
+        } catch (SQLException e) { //place check
+            if(Integer.valueOf(e.getSQLState()) ==
+                    PostgreSQLErrorCodes.CHECK_VIOLATION.getValue()) {
+                return BAD_PARAMS;
+                //e.printStackTrace()();
+            }
         }
         finally {
             try {
@@ -921,20 +1132,25 @@ public class Solution {
     public static ReturnValue athleteDisqualified(Integer sportId, Integer athleteId) {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
+        PreparedStatement pstmt1 = null;
         try {
-            Athlete athlete = getAthleteProfile(athleteId);
+            pstmt1 = connection.prepareStatement(
+                    "SELECT * FROM ActiveParticipantsView " +
+                            "where Aid = ? AND Sid= ?");
+            pstmt1.setInt(1,athleteId);
+            pstmt1.setInt(2,sportId);
+            ResultSet results = pstmt1.executeQuery();
+            if (!results.next()){ //not participating in sport or doesn't exist
+                return NOT_EXISTS;
+            }
             pstmt = connection.prepareStatement(
                     "DELETE FROM Winners " +
                             "where Aid = ? AND Sid= ?");
             pstmt.setInt(1,athleteId);
             pstmt.setInt(2,sportId);
             int affectedRows = pstmt.executeUpdate();
-            if(affectedRows == 0){
-                return NOT_EXISTS;
-            }else{
-                //update counter
-                return OK;
-            }
+            return OK; // return OK even if he hasn't won any medals at all
+
         } catch (SQLException e) {
             System.out.println("Delete winner exception detected!");
             return ERROR;
@@ -943,6 +1159,7 @@ public class Solution {
         finally {
             try {
                 pstmt.close();
+                pstmt1.close();
             } catch (SQLException e) {
                 return ERROR;
                 //e.printStackTrace()();
@@ -1036,8 +1253,6 @@ public class Solution {
 
     public static ReturnValue removeFriendship(Integer athleteId1, Integer athleteId2) {
 
-
-
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
         PreparedStatement pstmt1 = null;
@@ -1108,30 +1323,174 @@ public class Solution {
         return OK;
     }
 
-    public static ReturnValue changePayment(Integer athleteId, Integer sportId, Integer payment) {
+    public static ReturnValue changePayment(Integer athleteId, Integer sportId, Integer payment)
+    {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        PreparedStatement pstmt1 = null;
+        ResultSet results;
+
+        try {
+            //check if athletes exists and if he is an observer to the given sport
+            pstmt = connection.prepareStatement("SELECT * FROM ObserversView" +
+                    " WHERE Aid = ? AND Sid = ?");
+            pstmt.setInt(1,athleteId);
+            pstmt.setInt(2,sportId);
+            results=pstmt.executeQuery();
+            if(!results.next()) {
+                return NOT_EXISTS;
+            }
+            //he is an observer! - update payment
+            pstmt1 = connection.prepareStatement(
+                    "UPDATE Participants " +
+                            "SET Payment = ? " +
+                            "WHERE Aid = ? AND Sid = ? ");
+            pstmt1.setInt(1,payment);
+            pstmt1.setInt(2, athleteId);
+            pstmt1.setInt(3, sportId);
+            int affectedRows = pstmt1.executeUpdate();
+            if(affectedRows == 0){
+                return NOT_EXISTS; // should not happen
+            }else{
+                return OK;
+            }
+        } catch (SQLException e) {
+            //payment < 0 check
+            if(Integer.valueOf(e.getSQLState()) ==
+                    PostgreSQLErrorCodes.CHECK_VIOLATION.getValue()) {
+                return BAD_PARAMS;
+                //e.printStackTrace()();
+            }
+        }
+        finally {
+            try {
+                if(pstmt != null){
+                    pstmt.close();
+                }
+                if(pstmt1 != null){
+                    pstmt1.close();
+                }
+            } catch (SQLException e) {
+                return ERROR;
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                return ERROR;
+                //e.printStackTrace()();
+            }
+        }
         return OK;
     }
 
+    //TODO
     public static Boolean isAthletePopular(Integer athleteId) {
         return true;
     }
 
     public static Integer getTotalNumberOfMedalsFromCountry(String country) {
-        return 0;
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("SELECT COUNT(*) FROM AthletesWinnersView" +
+                    " WHERE Country = ?");
+            pstmt.setString(1, country);
+            ResultSet results = pstmt.executeQuery();
+            if(!results.next()){
+                return 0;
+            }
+            return results.getInt(1);
+        } catch (SQLException e) {
+                return 0;
+            }
+            //e.printStackTrace()();
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                return 0;
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                return 0;
+                //e.printStackTrace()();
+            }
+        }
     }
 
     public static Integer getIncomeFromSport(Integer sportId) {
-        return 0;
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("SELECT SUM(Payment) FROM Participants" +
+                    " WHERE Sid = ?");
+            pstmt.setInt(1, sportId);
+            ResultSet results = pstmt.executeQuery();
+            if(!results.next()){
+                return 0;
+            }
+            return results.getInt(1);
+        } catch (SQLException e) {
+            return 0;
+        }
+        //e.printStackTrace()();
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                return 0;
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                return 0;
+                //e.printStackTrace()();
+            }
+        }
     }
+
 
     public static String getBestCountry() {
-        return "";
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("SELECT Country FROM AthletesWinnersView" +
+                    " GROUP BY Country ORDER BY COUNT(*) DESC, Country ASC");
+            ResultSet results = pstmt.executeQuery();
+            if(!results.next()){ //all country won 0 medals
+                return "";
+            }
+            return results.getString(1);
+        } catch (SQLException e) {
+            return null;
+        }
+        //e.printStackTrace()();
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                return null;
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                return null;
+                //e.printStackTrace()();
+            }
+        }
     }
 
+    //TODO
     public static String getMostPopularCity() {
         return "";
     }
 
+    //TODO - advanced  ------------------------------------------------------
     public static ArrayList<Integer> getAthleteMedals(Integer athleteId) {
         return new ArrayList<>();
     }

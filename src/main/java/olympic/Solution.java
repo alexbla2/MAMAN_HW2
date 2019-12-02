@@ -18,39 +18,57 @@ public class Solution {
 
     public static void main(String[] args) {
         dropTables();
-//        clearTables();
         createTables();
-//        Sport sport = new Sport();
-//            sport.setId(1);
-//            sport.setName("Tenis");
-//            sport.setCity("Hebron");
+        clearTables();
+
+        Athlete athlete1 = new Athlete();
+        athlete1.setId(7);
+        athlete1.setName("Eial");
+        athlete1.setCountry("USA");
+        athlete1.setIsActive(false);
+
+        Athlete athlete2 = new Athlete();
+        athlete2.setId(2);
+        athlete2.setName("Alex");
+        athlete2.setCountry("UK");
+        athlete2.setIsActive(true);
+
+        Athlete athlete3 = new Athlete();
+        athlete3.setId(10);
+        athlete3.setName("or");
+        athlete3.setCountry("Brazil");
+        athlete3.setIsActive(true);
+
+
+
+        System.out.println("adding athlete1");
+        System.out.println(addAthlete(athlete1).toString());
+        System.out.println("adding athlete2");
+        System.out.println(addAthlete(athlete2).toString());
+        System.out.println("adding athlete3");
+        System.out.println(addAthlete(athlete3).toString());
+
+        Sport sport =new Sport();
+        sport.setId(50);
+        sport.setCity("haifa");
+        sport.setName("football");
+        //System.out.println("adding sport");
+
+
+        System.out.println(makeFriends(2,7).toString());
+        System.out.println(makeFriends(2,7).toString());
+        System.out.println(makeFriends(7,2).toString());
+        System.out.println(makeFriends(10,7).toString());
+
+        System.out.println(removeFriendship(10,8).toString());
+        System.out.println(removeFriendship(7,10).toString());
+
+
 //        System.out.println(addSport(sport).toString());
-//        Athlete athlete1 = new Athlete();
-//        athlete1.setId(7);
-//        athlete1.setName("Eial");
-//        athlete1.setCountry("USA");
-//        athlete1.setIsActive(false);
-//        Athlete athlete2 = new Athlete();
-//        athlete2.setId(2);
-//        athlete2.setName("Alex");
-//        athlete2.setCountry("UK");
-//        athlete2.setIsActive(true);
-//        System.out.println("adding athlete1");
-//        System.out.println(addAthlete(athlete1).toString());
-//        System.out.println(addAthlete(athlete2).toString());
-//        System.out.println("adding athlete2");
-//        System.out.println(athleteJoinSport(1,7));
-//        System.out.println(getSport(1));
-//        System.out.println(athleteLeftSport(1,7));
-//        System.out.println(getSport(1));
-//        System.out.println(athleteJoinSport(1,7));
-//        System.out.println(getSport(1));
-//        System.out.println(athleteJoinSport(1,2));
-//        System.out.println(getSport(1));
-//        System.out.println(athleteLeftSport(1,7));
-//        System.out.println(getSport(1));
-//        System.out.println(athleteLeftSport(1,2));
-//        System.out.println(getSport(1));
+//        System.out.println(athleteJoinSport(50,2).toString());
+//
+//        System.out.println(confirmStanding(50,2,2).toString());
+//        System.out.println(athleteDisqualified(50,5).toString());
     }
 
 
@@ -71,11 +89,11 @@ public class Solution {
 
             pstmt = connection.prepareStatement("CREATE TABLE Friends\n" +
                     "(\n" +
-                    "    Aid INTEGER ,\n" +
-                    "    Sid INTEGER ,\n" +
-                    "    PRIMARY KEY (Aid,Sid),\n" +
-                    "    FOREIGN KEY (Aid) REFERENCES Athletes (id) ON DELETE CASCADE,\n" +
-                    "    FOREIGN KEY (Sid) REFERENCES Sports (id) ON DELETE CASCADE\n" +
+                    "    Aid1 INTEGER ,\n" +
+                    "    Aid2 INTEGER ,\n" +
+                    "    PRIMARY KEY (Aid1,Aid2),\n" +
+                    "    FOREIGN KEY (Aid1) REFERENCES Athletes (id) ON DELETE CASCADE,\n" +
+                    "    FOREIGN KEY (Aid2) REFERENCES Athletes (id) ON DELETE CASCADE\n" +
                     ")");
             pstmt.execute();
         } catch (SQLException e) {
@@ -490,9 +508,9 @@ public class Solution {
         } catch (SQLException e) {
             if(Integer.valueOf(e.getSQLState()) ==
                     PostgreSQLErrorCodes.CHECK_VIOLATION.getValue()
-                ||  Integer.valueOf(e.getSQLState()) ==
-                        PostgreSQLErrorCodes.NOT_NULL_VIOLATION.getValue()){
-                    return BAD_PARAMS;
+                    ||  Integer.valueOf(e.getSQLState()) ==
+                    PostgreSQLErrorCodes.NOT_NULL_VIOLATION.getValue()){
+                return BAD_PARAMS;
             }
             if(Integer.valueOf(e.getSQLState()) ==
                     PostgreSQLErrorCodes.UNIQUE_VIOLATION.getValue()){
@@ -564,7 +582,6 @@ public class Solution {
         try {
             pstmt = connection.prepareStatement(
                     "DELETE FROM Athletes " +
-
                             "where id = ?");
             pstmt.setInt(1,athlete.getId());
             int affectedRows = pstmt.executeUpdate();
@@ -826,18 +843,268 @@ public class Solution {
     }
 
     public static ReturnValue confirmStanding(Integer sportId, Integer athleteId, Integer place) {
+        if(place>3 || place <1)
+            return BAD_PARAMS;
+
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        PreparedStatement pstmt1 = null;
+
+        try {
+            Athlete athlete = getAthleteProfile(athleteId);
+            Sport sport = getSport(sportId);
+
+            pstmt = connection.prepareStatement("SELECT Aid,Sid,Payment FROM Participants" +
+                    " WHERE Aid =? AND Sid=?");
+            pstmt.setInt(1,athleteId);
+            pstmt.setInt(2,sportId);
+            ResultSet results = pstmt.executeQuery();
+
+
+            if(!athlete.getIsActive() || !results.next() || athlete.equals(Athlete.badAthlete()) || sport.equals(Sport.badSport())){ //no such athlete or sport or the athlete is not participating in the sport
+                results.close();
+                return NOT_EXISTS;
+            }else {
+                results.close();
+
+                //check if athlete already got a medal
+                pstmt1 = connection.prepareStatement("SELECT Aid,Sid,Place FROM Winners" +
+                        " WHERE Aid =? AND Sid=?");
+                pstmt1.setInt(1,athleteId);
+                pstmt1.setInt(2,sportId);
+                results = pstmt1.executeQuery();
+
+                if(results.next()) {//athlete already got medal, time to update it!
+                    pstmt = connection.prepareStatement("UPDATE Winners" +
+                            " SET Place = ?" +
+                            " WHERE Aid =? AND Sid=?");
+                    pstmt.setInt(1, place);
+                    pstmt.setInt(2, athleteId);
+                    pstmt.setInt(3, sportId);
+                    pstmt.executeUpdate();
+                }else {
+
+                    pstmt = connection.prepareStatement("INSERT INTO Winners" +
+                            " VALUES (?, ?, ?)");
+                    pstmt.setInt(1, athleteId);
+                    pstmt.setInt(2, sportId);
+                    pstmt.setInt(3, place);
+                    pstmt.execute();
+                }
+            }
+        } catch (SQLException e) {
+            return ERROR;
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                if(pstmt != null){
+                    pstmt.close();
+                }
+                if(pstmt1 != null){
+                    pstmt1.close();
+                }
+            } catch (SQLException e) {
+                return ERROR;
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                return ERROR;
+                //e.printStackTrace()();
+            }
+        }
         return OK;
     }
 
     public static ReturnValue athleteDisqualified(Integer sportId, Integer athleteId) {
-        return OK;
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            Athlete athlete = getAthleteProfile(athleteId);
+            pstmt = connection.prepareStatement(
+                    "DELETE FROM Winners " +
+                            "where Aid = ? AND Sid= ?");
+            pstmt.setInt(1,athleteId);
+            pstmt.setInt(2,sportId);
+            int affectedRows = pstmt.executeUpdate();
+            if(affectedRows == 0){
+                return NOT_EXISTS;
+            }else{
+                //update counter
+                return OK;
+            }
+        } catch (SQLException e) {
+            System.out.println("Delete winner exception detected!");
+            return ERROR;
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                return ERROR;
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                return ERROR;
+                //e.printStackTrace()();
+            }
+        }
     }
 
     public static ReturnValue makeFriends(Integer athleteId1, Integer athleteId2) {
+
+        if(athleteId1 == athleteId2) //check if bad parameters
+            return BAD_PARAMS;
+
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        PreparedStatement pstmt1 = null;
+        ResultSet results;
+        ResultSet results1;
+        try {
+            pstmt = connection.prepareStatement("SELECT Id,Name,Country,Active From Athletes" +
+                    " WHERE Id =?");
+            //check if athletes exists
+            pstmt = connection.prepareStatement("SELECT Id From Athletes" +
+                    " Where Id = ?");
+            pstmt.setInt(1,athleteId1);
+            pstmt1 = connection.prepareStatement("SELECT Id From Athletes" +
+                    " Where Id = ?");
+            pstmt1.setInt(1,athleteId2);
+            results=pstmt.executeQuery();
+            results1=pstmt1.executeQuery();
+            if(!results1.next() || !results.next())
+                return NOT_EXISTS;
+            //end check if athletes exists
+
+            //check if already friends
+            pstmt = connection.prepareStatement("SELECT Aid1,Aid2 FROM Friends" +
+                    " WHERE Aid1 = ? AND  Aid2= ?" +
+                    " UNION " +
+                    " SELECT Aid1,Aid2 FROM Friends" +
+                    " WHERE Aid1 = ? AND  Aid2= ?");
+
+            pstmt.setInt(1,athleteId1);
+            pstmt.setInt(2, athleteId2);
+            pstmt.setInt(3, athleteId2);
+            pstmt.setInt(4, athleteId1);
+            results = pstmt.executeQuery();
+            if(results.next()) {
+                results.close();
+                return ALREADY_EXISTS;
+            }
+            //end check if already friends
+            else { //everything good! lets make new friends!
+                pstmt = connection.prepareStatement("INSERT INTO Friends" +
+                        " VALUES ( ? , ? )");
+                pstmt.setInt(1 , athleteId1);
+                pstmt.setInt(2 , athleteId2);
+                pstmt.execute();
+            }
+
+        } catch (SQLException e) {
+            return ERROR;
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                if(pstmt != null){
+                    pstmt.close();
+                }
+                if(pstmt1 != null){
+                    pstmt1.close();
+                }
+            } catch (SQLException e) {
+                return ERROR;
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                return ERROR;
+                //e.printStackTrace()();
+            }
+        }
         return OK;
+
     }
 
     public static ReturnValue removeFriendship(Integer athleteId1, Integer athleteId2) {
+
+
+
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        PreparedStatement pstmt1 = null;
+        PreparedStatement pstmt2 = null;
+        ResultSet results;
+        ResultSet results1;
+        ResultSet results2;
+        try {
+            //check if athletes exists and if they are friends
+            pstmt = connection.prepareStatement("SELECT Id FROM Athletes" +
+                    " WHERE Id = ?");
+            pstmt.setInt(1,athleteId1);
+            pstmt1 = connection.prepareStatement("SELECT Id From Athletes" +
+                    " WHERE Id = ?");
+            pstmt1.setInt(1,athleteId2);
+            pstmt2 = connection.prepareStatement("SELECT Aid1,Aid2 From Friends" +
+                    " WHERE Aid1 = ? And Aid2 = ?" +
+                    " UNION " +
+                    " SELECT Aid1,Aid2 From Friends " +
+                    " WHERE Aid1 = ? And Aid2 = ?");
+            pstmt2.setInt(1,athleteId1);
+            pstmt2.setInt(2, athleteId2);
+            pstmt2.setInt(3, athleteId2);
+            pstmt2.setInt(4, athleteId1);
+
+
+            results=pstmt.executeQuery();
+            results1=pstmt1.executeQuery();
+            results2=pstmt2.executeQuery();
+            if(!results2.next() || !results1.next() || !results.next())
+                return NOT_EXISTS;
+            //end check if athletes exists
+
+            //check if already friends
+            pstmt = connection.prepareStatement("DELETE FROM Friends " +
+                    " WHERE Aid1 = ? AND Aid2 = ? " +
+                    " OR Aid1 = ? AND Aid2 = ?");
+
+            pstmt.setInt(1,athleteId1);
+            pstmt.setInt(2, athleteId2);
+            pstmt.setInt(3, athleteId2);
+            pstmt.setInt(4, athleteId1);
+            pstmt.execute();
+
+        } catch (SQLException e) {
+            return ERROR;
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                if(pstmt != null){
+                    pstmt.close();
+                }
+                if(pstmt1 != null){
+                    pstmt1.close();
+                }
+            } catch (SQLException e) {
+                return ERROR;
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                return ERROR;
+                //e.printStackTrace()();
+            }
+        }
         return OK;
     }
 
@@ -881,4 +1148,3 @@ public class Solution {
         return new ArrayList<>();
     }
 }
-

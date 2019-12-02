@@ -1389,9 +1389,46 @@ public class Solution {
         return OK;
     }
 
-    //TODO
+    //TODO - check
     public static Boolean isAthletePopular(Integer athleteId) {
-        return true;
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("SELECT Sid FROM" +
+                    " ((SELECT Aid1 AS Aid FROM Friends" +
+                    " WHERE Aid2 = ?" +
+                    " UNION ALL" +
+                    " SELECT Aid2 AS Aid FROM Friends" +
+                    " WHERE Aid1 = ? AS AllFriends" +
+                    " INNER JOIN Participants ON AllFriends.Aid = Participants.Aid )" +
+                    " WHERE Sid NOT IN (SELECT Sid FROM participants WHERE Participants.Aid = ?)");
+            pstmt.setInt(1, athleteId);
+            pstmt.setInt(2, athleteId);
+            pstmt.setInt(3, athleteId);
+            ResultSet results = pstmt.executeQuery();
+            if(!results.next()){ // friends do not attend other sports - so loyal!
+                return true;
+            }else{ //traitors!
+                return false;
+            }
+        } catch (SQLException e) {
+            return false;
+        }
+        //e.printStackTrace()();
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                return false;
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                return false;
+                //e.printStackTrace()();
+            }
+        }
     }
 
     public static Integer getTotalNumberOfMedalsFromCountry(String country) {

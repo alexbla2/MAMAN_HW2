@@ -2,5 +2,12 @@
 .idea/vcs.xml
 .idea/workspace.xml
 *.xml
-src/main/resources/
+/src/main/resources/
 .idea/workspace.xml
+.idea/workspace.xml
+*.kotlin_module
+*.xml
+*.class
+*.xml
+*.class
+target/classes/olympic/Solution.class

@@ -170,7 +170,7 @@ public class Solution {
 
             pstmt = connection.prepareStatement("CREATE VIEW ActiveParticipantsView AS\n" +
                     "(\n" +
-                    "    SELECT Aid,Sid,Payment \n" +
+                    "    SELECT Aid,Sid \n" +
                     "    FROM Participants INNER JOIN Athletes \n" +
                     "    ON (Athletes.Active = TRUE AND Athletes.Id = Participants.Aid)  \n" +
                     ")");
@@ -199,7 +199,7 @@ public class Solution {
 
             pstmt = connection.prepareStatement("CREATE VIEW AthletesWinnersView AS\n" +
                     "(\n" +
-                    "    SELECT Id,Name,Country,Active,Sid,Place \n" +
+                    "    SELECT Id,Name,Country,Sid,Place \n" +
                     "    FROM  Athletes INNER JOIN Winners \n" +
                     "    ON (Athletes.Id = Winners.Aid) \n" +
                     ")");

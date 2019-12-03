@@ -11,3 +11,5 @@
 *.xml
 *.class
 target/classes/olympic/Solution.class
+src/main/resources/config.properties
+.idea/workspace.xml

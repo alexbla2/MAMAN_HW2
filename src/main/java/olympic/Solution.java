@@ -125,7 +125,6 @@ public class Solution {
         createAthletesTable();
         createSportsTable();
         createParticipantsTable();
-        createWinnersTable();
         createFriendsTable();
         createViews();
     }
@@ -133,7 +132,9 @@ public class Solution {
     private static void createViews() {
         createActiveParticipantsView();
         createObserversView();
+        createWinnersView();
         createAthletesWinnersView();
+
     }
 
     private static void createObserversView() {
@@ -253,20 +254,15 @@ public class Solution {
         }
     }
 
-    private static void createWinnersTable() {
+    private static void createWinnersView() {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
         try {
 
-            pstmt = connection.prepareStatement("CREATE TABLE Winners\n" +
+            pstmt = connection.prepareStatement("CREATE VIEW Winners AS\n" +
                     "(\n" +
-                    "    Aid INTEGER ,\n" +
-                    "    Sid INTEGER ,\n" +
-                    "    Place INTEGER ,\n" +
-                    "    PRIMARY KEY (Aid,Sid),\n" +
-                    "    FOREIGN KEY (Aid) REFERENCES Athletes (id) ON DELETE CASCADE,\n" +
-                    "    FOREIGN KEY (Sid) REFERENCES Sports (id) ON DELETE CASCADE,\n" +
-                    "    CHECK (Place > 0 AND Place < 4 )\n" +
+                    "    SELECT Aid,Sid,Place \n" +
+                    "    FROM Participants WHERE Place IS NOT NULL " +
                     ")");
             pstmt.execute();
         } catch (SQLException e) {
@@ -296,10 +292,12 @@ public class Solution {
                     "    Aid INTEGER ,\n" +
                     "    Sid INTEGER ,\n" +
                     "    Payment INTEGER ,\n" +
+                    "    Place INTEGER ,\n" +
                     "    PRIMARY KEY (Aid,Sid),\n" +
                     "    FOREIGN KEY (Aid) REFERENCES Athletes (id) ON DELETE CASCADE,\n" +
                     "    FOREIGN KEY (Sid) REFERENCES Sports (id) ON DELETE CASCADE,\n" +
                     "    CHECK (Payment >-1)\n" +
+                    "    CHECK (Place IS NULL OR Place > 0 AND Place < 4 )\n" +
                     ")");
             pstmt.execute();
         } catch (SQLException e) {
@@ -512,7 +510,6 @@ public class Solution {
         dropAthletesTable();
         dropSportsTable();
         dropParticipantsTable();
-        dropWinnersTable();
         dropFriendsTable();
         dropViews();
         //more drops
@@ -522,6 +519,7 @@ public class Solution {
         dropAthletesWinnersView();
         dropObserversView();
         dropActiveParticipantsView();
+        dropWinnersView();
         //more views to drop
     }
 
@@ -617,11 +615,11 @@ public class Solution {
         }
     }
 
-    private static void dropWinnersTable() {
+    private static void dropWinnersView() {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
         try {
-            pstmt = connection.prepareStatement("DROP TABLE IF EXISTS Winners");
+            pstmt = connection.prepareStatement("DROP VIEW IF EXISTS Winners");
             pstmt.execute();
         } catch (SQLException e) {
             //e.printStackTrace()();
@@ -1085,7 +1083,7 @@ public class Solution {
                 results = pstmt1.executeQuery();
 
                 if(results.next()) {//athlete already got medal, time to update it!
-                    pstmt = connection.prepareStatement("UPDATE Winners" +
+                    pstmt = connection.prepareStatement("UPDATE Participants" +
                             " SET Place = ?" +
                             " WHERE Aid =? AND Sid=?");
                     pstmt.setInt(1, place);
@@ -1093,11 +1091,12 @@ public class Solution {
                     pstmt.setInt(3, sportId);
                     pstmt.executeUpdate();
                 }else { //his first medal in this sport - lets add it!
-                    pstmt = connection.prepareStatement("INSERT INTO Winners" +
-                            " VALUES (?, ?, ?)");
+                    pstmt = connection.prepareStatement("INSERT INTO Participants" +
+                            " VALUES (?, ?, ?,?)");
                     pstmt.setInt(1, athleteId);
                     pstmt.setInt(2, sportId);
-                    pstmt.setInt(3, place);
+                    pstmt.setInt(3, 0);
+                    pstmt.setInt(4, place);
                     pstmt.execute();
                 }
             }
@@ -1145,11 +1144,12 @@ public class Solution {
                 return NOT_EXISTS;
             }
             pstmt = connection.prepareStatement(
-                    "DELETE FROM Winners " +
-                            "where Aid = ? AND Sid= ?");
+                    "UPDATE Participants " +
+                    "Set Place = NULL" +
+                            " WHERE Aid = ? AND Sid= ?");
             pstmt.setInt(1,athleteId);
             pstmt.setInt(2,sportId);
-            int affectedRows = pstmt.executeUpdate();
+            pstmt.executeUpdate();
             return OK; // return OK even if he hasn't won any medals at all
 
         } catch (SQLException e) {

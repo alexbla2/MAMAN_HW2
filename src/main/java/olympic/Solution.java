@@ -86,20 +86,20 @@ public class Solution {
         System.out.println(confirmStanding(40,2,3).toString()); //or is 3th
         System.out.println(confirmStanding(40,3,1).toString()); //or is 3th
         System.out.println(getAthleteMedals(3).toString()); //or is 3th
-//        System.out.println(athleteDisqualified(40,2).toString()); //alex is diss
+        System.out.println(athleteDisqualified(40,2).toString()); //alex is diss
 
-//        System.out.println(changePayment(2,50,50).toString()); //active cant pay
-//        System.out.println(changePayment(1,50,70).toString()); //eyal pays 70
-//        System.out.println(changePayment(1,50,-10).toString()); //error
-//        System.out.println(changePayment(4,50,100).toString()); //error no such id
+        System.out.println(changePayment(2,50,50).toString()); //active cant pay
+        System.out.println(changePayment(1,50,70).toString()); //eyal pays 70
+        System.out.println(changePayment(1,50,-10).toString()); //error
+        System.out.println(changePayment(4,50,100).toString()); //error no such id
 
         System.out.println(getTotalNumberOfMedalsFromCountry("USA").toString()); //none
         System.out.println(getTotalNumberOfMedalsFromCountry("Brazil").toString()); //1
         System.out.println(getTotalNumberOfMedalsFromCountry("seeker").toString()); //none
 
 
-//        System.out.println(getIncomeFromSport(50).toString()); //none
-//        System.out.println(getIncomeFromSport(40).toString()); //none
+        System.out.println(getIncomeFromSport(50).toString()); //100
+        System.out.println(getIncomeFromSport(40).toString()); //70
 //
 //
         System.out.println(getBestCountry().toString()); //none
@@ -287,7 +287,7 @@ public class Solution {
         PreparedStatement pstmt = null;
         try {
 
-            pstmt = connection.prepareStatement("CREATE TABLE Participants\n" +
+            pstmt = connection.prepareStatement("CREATE TABLE Participants \n" +
                     "(\n" +
                     "    Aid INTEGER ,\n" +
                     "    Sid INTEGER ,\n" +
@@ -296,7 +296,7 @@ public class Solution {
                     "    PRIMARY KEY (Aid,Sid),\n" +
                     "    FOREIGN KEY (Aid) REFERENCES Athletes (id) ON DELETE CASCADE,\n" +
                     "    FOREIGN KEY (Sid) REFERENCES Sports (id) ON DELETE CASCADE,\n" +
-                    "    CHECK (Payment >-1)\n" +
+                    "    CHECK (Payment >-1),\n" +
                     "    CHECK (Place IS NULL OR Place > 0 AND Place < 4 )\n" +
                     ")");
             pstmt.execute();
@@ -1061,7 +1061,6 @@ public class Solution {
     public static ReturnValue confirmStanding(Integer sportId, Integer athleteId, Integer place) {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
-        PreparedStatement pstmt1 = null;
 
         try {
             pstmt = connection.prepareStatement("SELECT * FROM ActiveParticipantsView" +
@@ -1075,30 +1074,14 @@ public class Solution {
                 return NOT_EXISTS;
             }else {
                 results.close();
-                //check if athlete already got a medal
-                pstmt1 = connection.prepareStatement("SELECT * FROM Winners" +
+                //update the place accord
+                pstmt = connection.prepareStatement("UPDATE Participants" +
+                        " SET Place = ?" +
                         " WHERE Aid =? AND Sid=?");
-                pstmt1.setInt(1,athleteId);
-                pstmt1.setInt(2,sportId);
-                results = pstmt1.executeQuery();
-
-                if(results.next()) {//athlete already got medal, time to update it!
-                    pstmt = connection.prepareStatement("UPDATE Participants" +
-                            " SET Place = ?" +
-                            " WHERE Aid =? AND Sid=?");
-                    pstmt.setInt(1, place);
-                    pstmt.setInt(2, athleteId);
-                    pstmt.setInt(3, sportId);
-                    pstmt.executeUpdate();
-                }else { //his first medal in this sport - lets add it!
-                    pstmt = connection.prepareStatement("INSERT INTO Participants" +
-                            " VALUES (?, ?, ?,?)");
-                    pstmt.setInt(1, athleteId);
-                    pstmt.setInt(2, sportId);
-                    pstmt.setInt(3, 0);
-                    pstmt.setInt(4, place);
-                    pstmt.execute();
-                }
+                pstmt.setInt(1, place);
+                pstmt.setInt(2, athleteId);
+                pstmt.setInt(3, sportId);
+                pstmt.executeUpdate();
             }
         } catch (SQLException e) { //place check
             if(Integer.valueOf(e.getSQLState()) ==
@@ -1111,9 +1094,6 @@ public class Solution {
             try {
                 if(pstmt != null){
                     pstmt.close();
-                }
-                if(pstmt1 != null){
-                    pstmt1.close();
                 }
             } catch (SQLException e) {
                 return ERROR;

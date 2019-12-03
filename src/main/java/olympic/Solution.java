@@ -133,7 +133,6 @@ public class Solution {
         createActiveParticipantsView();
         createObserversView();
         createWinnersView();
-        createAthletesWinnersView();
 
     }
 
@@ -194,16 +193,17 @@ public class Solution {
         }
     }
 
-    private static void createAthletesWinnersView() {
+    private static void createWinnersView() {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
         try {
 
-            pstmt = connection.prepareStatement("CREATE VIEW AthletesWinnersView AS\n" +
+            pstmt = connection.prepareStatement("CREATE VIEW WinnersView AS\n" +
                     "(\n" +
-                    "    SELECT Id,Name,Country,Sid,Place \n" +
-                    "    FROM  Athletes INNER JOIN Winners \n" +
-                    "    ON (Athletes.Id = Winners.Aid) \n" +
+                    "    SELECT Id AS Aid,Name,Country,Sid,Place \n" +
+                    "    FROM  Athletes INNER JOIN Participants \n" +
+                    "    ON (Athletes.Id = Participants.Aid) \n" +
+                    "    WHERE Place IS NOT NULL \n" +
                     ")");
             pstmt.execute();
         } catch (SQLException e) {
@@ -254,33 +254,6 @@ public class Solution {
         }
     }
 
-    private static void createWinnersView() {
-        Connection connection = DBConnector.getConnection();
-        PreparedStatement pstmt = null;
-        try {
-
-            pstmt = connection.prepareStatement("CREATE VIEW Winners AS\n" +
-                    "(\n" +
-                    "    SELECT Aid,Sid,Place \n" +
-                    "    FROM Participants WHERE Place IS NOT NULL " +
-                    ")");
-            pstmt.execute();
-        } catch (SQLException e) {
-            //e.printStackTrace()();
-        }
-        finally {
-            try {
-                pstmt.close();
-            } catch (SQLException e) {
-                //e.printStackTrace()();
-            }
-            try {
-                connection.close();
-            } catch (SQLException e) {
-                //e.printStackTrace()();
-            }
-        }
-    }
 
     private static void createParticipantsTable() {
         Connection connection = DBConnector.getConnection();
@@ -386,7 +359,6 @@ public class Solution {
         clearAthletesTable();
         clearSportsTable();
         clearParticipantsTable();
-        clearWinnersTables();
         clearFriendsTable();
         //clear other tables
     }
@@ -396,29 +368,6 @@ public class Solution {
         PreparedStatement pstmt = null;
         try {
             pstmt = connection.prepareStatement("DELETE FROM Friends");
-            pstmt.execute();
-        } catch (SQLException e) {
-            //e.printStackTrace()();
-        }
-        finally {
-            try {
-                pstmt.close();
-            } catch (SQLException e) {
-                //e.printStackTrace()();
-            }
-            try {
-                connection.close();
-            } catch (SQLException e) {
-                //e.printStackTrace()();
-            }
-        }
-    }
-
-    private static void clearWinnersTables() {
-        Connection connection = DBConnector.getConnection();
-        PreparedStatement pstmt = null;
-        try {
-            pstmt = connection.prepareStatement("DELETE FROM Winners");
             pstmt.execute();
         } catch (SQLException e) {
             //e.printStackTrace()();
@@ -516,7 +465,6 @@ public class Solution {
     }
 
     private static void dropViews() {
-        dropAthletesWinnersView();
         dropObserversView();
         dropActiveParticipantsView();
         dropWinnersView();
@@ -569,28 +517,6 @@ public class Solution {
         }
     }
 
-    private static void dropAthletesWinnersView() {
-        Connection connection = DBConnector.getConnection();
-        PreparedStatement pstmt = null;
-        try {
-            pstmt = connection.prepareStatement("DROP VIEW IF EXISTS AthletesWinnersView");
-            pstmt.execute();
-        } catch (SQLException e) {
-            //e.printStackTrace()();
-        }
-        finally {
-            try {
-                pstmt.close();
-            } catch (SQLException e) {
-                //e.printStackTrace()();
-            }
-            try {
-                connection.close();
-            } catch (SQLException e) {
-                //e.printStackTrace()();
-            }
-        }
-    }
 
     private static void dropFriendsTable() {
         Connection connection = DBConnector.getConnection();
@@ -619,7 +545,7 @@ public class Solution {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
         try {
-            pstmt = connection.prepareStatement("DROP VIEW IF EXISTS Winners");
+            pstmt = connection.prepareStatement("DROP VIEW IF EXISTS WinnersView");
             pstmt.execute();
         } catch (SQLException e) {
             //e.printStackTrace()();
@@ -1415,7 +1341,7 @@ public class Solution {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
         try {
-            pstmt = connection.prepareStatement("SELECT COUNT(*) FROM AthletesWinnersView" +
+            pstmt = connection.prepareStatement("SELECT COUNT(*) FROM WinnersView" +
                     " WHERE Country = ?");
             pstmt.setString(1, country);
             ResultSet results = pstmt.executeQuery();
@@ -1480,7 +1406,7 @@ public class Solution {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
         try {
-            pstmt = connection.prepareStatement("SELECT Country FROM AthletesWinnersView" +
+            pstmt = connection.prepareStatement("SELECT Country FROM WinnersView" +
                     " GROUP BY Country ORDER BY COUNT(*) DESC, Country ASC");
             ResultSet results = pstmt.executeQuery();
             if(!results.next()){ //all country won 0 medals
@@ -1552,7 +1478,7 @@ public class Solution {
             errorList.add(0);
         }
         try {
-            pstmt = connection.prepareStatement("SELECT COUNT(*) FROM Winners" +
+            pstmt = connection.prepareStatement("SELECT COUNT(*) FROM WinnersView" +
                     " WHERE Aid = ? AND PLACE = ?");
             pstmt.setInt(1, athleteId);
             pstmt.setInt(2, 1); //gold medal
@@ -1598,6 +1524,7 @@ public class Solution {
     }
 
     public static ArrayList<Integer> getMostRatedAthletes() {
+
         return new ArrayList<>();
     }
 

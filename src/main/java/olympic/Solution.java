@@ -86,7 +86,7 @@ public class Solution {
         System.out.println(confirmStanding(40,2,3).toString()); //or is 3th
         System.out.println(confirmStanding(40,3,1).toString()); //or is 3th
         System.out.println(getAthleteMedals(3).toString()); //or is 3th
-        System.out.println(athleteDisqualified(40,2).toString()); //alex is diss
+//        System.out.println(athleteDisqualified(40,2).toString()); //alex is diss
 
         System.out.println(changePayment(2,50,50).toString()); //active cant pay
         System.out.println(changePayment(1,50,70).toString()); //eyal pays 70
@@ -103,15 +103,7 @@ public class Solution {
 //
 //
         System.out.println(getBestCountry().toString()); //none
-
-
-
-
-
-
-
-
-
+        System.out.println(getMostRatedAthletes().toString()); //none
 
 
 //
@@ -133,7 +125,46 @@ public class Solution {
         createActiveParticipantsView();
         createObserversView();
         createWinnersView();
+        createMedalsScoreView();
 
+    }
+
+    private  static  void createMedalsScoreView() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+
+            pstmt = connection.prepareStatement("CREATE VIEW MedalsScoreView AS\n"+
+                    "(\n" +
+                    "   SELECT a1.aid,COALESCE(gold,0) AS Golds,COALESCE(silver,0) AS Silvers,COALESCE(bronze,0) AS Bronzes,(COALESCE(gold,0)*3 + COALESCE(silver,0)*2 + COALESCE(bronze,0)) AS score\n " +
+                    " FROM\n" +
+                    " (SELECT Aid FROM ActiveParticipantsView GROUP BY Aid) as a1 " +
+                    " LEFT JOIN " +
+                    "(SELECT Aid,COUNT(*) as gold FROM WinnersView WHERE Place =1 GROUP BY Aid)  as a2 " +
+                    " ON a1.Aid = a2.Aid" +
+                    " LEFT JOIN" +
+                    " (SELECT Aid,COUNT(*) as silver FROM WinnersView WHERE Place =2 GROUP BY Aid) as a3 " +
+                    " ON a1.Aid = a3.Aid " +
+                    " LEFT JOIN" +
+                    " (SELECT Aid,COUNT(*) as bronze FROM WinnersView WHERE Place =3 GROUP BY Aid) as a4 " +
+                    " ON a1.Aid = a4.Aid " +
+                    ")");
+            pstmt.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
     }
 
     private static void createObserversView() {
@@ -466,9 +497,33 @@ public class Solution {
 
     private static void dropViews() {
         dropObserversView();
+        dropMedalsScoreView();
         dropActiveParticipantsView();
         dropWinnersView();
         //more views to drop
+    }
+
+    private static void dropMedalsScoreView() {
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = connection.prepareStatement("DROP VIEW IF EXISTS MedalsScoreView");
+            pstmt.execute();
+        } catch (SQLException e) {
+            //e.printStackTrace()();
+        }
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                //e.printStackTrace()();
+            }
+        }
     }
 
     private static void dropObserversView() {
@@ -1478,31 +1533,18 @@ public class Solution {
             errorList.add(0);
         }
         try {
-            pstmt = connection.prepareStatement("SELECT COUNT(*) FROM WinnersView" +
-                    " WHERE Aid = ? AND PLACE = ?");
+            pstmt = connection.prepareStatement("SELECT golds,silvers,bronzes FROM MedalsScoreView" +
+                    " WHERE Aid = ?");
             pstmt.setInt(1, athleteId);
-            pstmt.setInt(2, 1); //gold medal
             ResultSet results = pstmt.executeQuery();
-            if(!results.next()){ //no gold medals
-                arrayList.add(0);
-            }else{
+            if(!results.next()){ //not active
+                return errorList;
+            }else{ //there is such active athelete
                 arrayList.add(results.getInt(1));
+                arrayList.add(results.getInt(2));
+                arrayList.add(results.getInt(3));
+                return arrayList;
             }
-            pstmt.setInt(2, 2); //silver medal
-            results = pstmt.executeQuery();
-            if(!results.next()){ //no silver medals
-                arrayList.add(0);
-            }else{
-                arrayList.add(results.getInt(1));
-            }
-            pstmt.setInt(2, 3); //bronze medal
-            results = pstmt.executeQuery();
-            if(!results.next()){ //no bronze medals
-                arrayList.add(0);
-            }else{
-                arrayList.add(results.getInt(1));
-            }
-            return arrayList;
         } catch (SQLException e) {
             return errorList;
         }
@@ -1524,8 +1566,42 @@ public class Solution {
     }
 
     public static ArrayList<Integer> getMostRatedAthletes() {
-
-        return new ArrayList<>();
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        ArrayList<Integer> arrayList = new ArrayList<>();
+        ArrayList<Integer> errorList = new ArrayList<>();
+        try {
+            pstmt = connection.prepareStatement("SELECT Aid FROM MedalsScoreView" +
+                    " ORDER BY score DESC, aid ASC " +
+                    " LIMIT 10");
+            ResultSet results = pstmt.executeQuery();
+            if(!results.next()){ //not active athletes
+                return errorList;
+            }else{ //there is such active athelete
+                arrayList.add(results.getInt(1));
+                while(results.next()){
+                    arrayList.add(results.getInt(1));
+                }
+                return arrayList;
+            }
+        } catch (SQLException e) {
+            return errorList;
+        }
+        //e.printStackTrace()();
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                return errorList;
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                return errorList;
+                //e.printStackTrace()();
+            }
+        }
     }
 
     public static ArrayList<Integer> getCloseAthletes(Integer athleteId) {

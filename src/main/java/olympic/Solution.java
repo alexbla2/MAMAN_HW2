@@ -136,18 +136,18 @@ public class Solution {
 
             pstmt = connection.prepareStatement("CREATE VIEW MedalsScoreView AS\n"+
                     "(\n" +
-                    "   SELECT a1.aid,COALESCE(gold,0) AS Golds,COALESCE(silver,0) AS Silvers,COALESCE(bronze,0) AS Bronzes,(COALESCE(gold,0)*3 + COALESCE(silver,0)*2 + COALESCE(bronze,0)) AS score\n " +
+                    "   SELECT a1.id,COALESCE(gold,0) AS Golds,COALESCE(silver,0) AS Silvers,COALESCE(bronze,0) AS Bronzes,(COALESCE(gold,0)*3 + COALESCE(silver,0)*2 + COALESCE(bronze,0)) AS score\n " +
                     " FROM\n" +
-                    " (SELECT Aid FROM ActiveParticipantsView GROUP BY Aid) as a1 " +
+                    " (SELECT id FROM Athletes GROUP BY id) as a1 " +
                     " LEFT JOIN " +
                     "(SELECT Aid,COUNT(*) as gold FROM WinnersView WHERE Place =1 GROUP BY Aid)  as a2 " +
-                    " ON a1.Aid = a2.Aid" +
+                    " ON a1.id = a2.Aid" +
                     " LEFT JOIN" +
                     " (SELECT Aid,COUNT(*) as silver FROM WinnersView WHERE Place =2 GROUP BY Aid) as a3 " +
-                    " ON a1.Aid = a3.Aid " +
+                    " ON a1.id = a3.Aid " +
                     " LEFT JOIN" +
                     " (SELECT Aid,COUNT(*) as bronze FROM WinnersView WHERE Place =3 GROUP BY Aid) as a4 " +
-                    " ON a1.Aid = a4.Aid " +
+                    " ON a1.id = a4.Aid " +
                     ")");
             pstmt.execute();
         } catch (SQLException e) {
@@ -1571,8 +1571,8 @@ public class Solution {
         ArrayList<Integer> arrayList = new ArrayList<>();
         ArrayList<Integer> errorList = new ArrayList<>();
         try {
-            pstmt = connection.prepareStatement("SELECT Aid FROM MedalsScoreView" +
-                    " ORDER BY score DESC, aid ASC " +
+            pstmt = connection.prepareStatement("SELECT id FROM MedalsScoreView" +
+                    " ORDER BY score DESC, id ASC " +
                     " LIMIT 10");
             ResultSet results = pstmt.executeQuery();
             if(!results.next()){ //not active athletes

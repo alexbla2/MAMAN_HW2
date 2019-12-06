@@ -11,6 +11,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import static olympic.business.ReturnValue.*;
 
@@ -171,7 +172,7 @@ public class Solution {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
         try {
-            pstmt = connection.prepareStatement("CREATE VIEW ObserversView AS\n" +
+            pstmt = connection.prepareStatement("CREATE OR REPLACE VIEW ObserversView AS\n" +
                     "(\n" +
                     "    SELECT Aid,Sid,Payment \n" +
                     "    FROM Participants INNER JOIN Athletes \n" +
@@ -200,7 +201,7 @@ public class Solution {
         PreparedStatement pstmt = null;
         try {
 
-            pstmt = connection.prepareStatement("CREATE VIEW ActiveParticipantsView AS\n" +
+            pstmt = connection.prepareStatement("CREATE OR REPLACE VIEW ActiveParticipantsView AS\n" +
                     "(\n" +
                     "    SELECT Aid,Sid \n" +
                     "    FROM Participants INNER JOIN Athletes \n" +
@@ -229,7 +230,7 @@ public class Solution {
         PreparedStatement pstmt = null;
         try {
 
-            pstmt = connection.prepareStatement("CREATE VIEW WinnersView AS\n" +
+            pstmt = connection.prepareStatement("CREATE OR REPLACE VIEW WinnersView AS\n" +
                     "(\n" +
                     "    SELECT Id AS Aid,Name,Country,Sid,Place \n" +
                     "    FROM  Athletes INNER JOIN Participants \n" +
@@ -1096,12 +1097,12 @@ public class Solution {
         PreparedStatement pstmt1 = null;
         try {
             pstmt1 = connection.prepareStatement(
-                    "SELECT * FROM ActiveParticipantsView " +
+                    "SELECT * FROM Participants " +
                             "where Aid = ? AND Sid= ?");
             pstmt1.setInt(1,athleteId);
             pstmt1.setInt(2,sportId);
             ResultSet results = pstmt1.executeQuery();
-            if (!results.next()){ //not participating in sport or doesn't exist
+            if (!results.next()){ //not participating/observing in sport or doesn't exist
                 return NOT_EXISTS;
             }
             pstmt = connection.prepareStatement(
@@ -1356,11 +1357,11 @@ public class Solution {
         PreparedStatement pstmt = null;
         try {
             pstmt = connection.prepareStatement("SELECT Sid FROM" +
-                    " ((SELECT Aid1 AS Aid FROM Friends" +
+                    " (( SELECT Aid1 AS Aid FROM Friends" +
                     " WHERE Aid2 = ?" +
                     " UNION ALL" +
                     " SELECT Aid2 AS Aid FROM Friends" +
-                    " WHERE Aid1 = ? AS AllFriends" +
+                    " WHERE Aid1 = ? ) AllFriends" +
                     " INNER JOIN Participants ON AllFriends.Aid = Participants.Aid )" +
                     " WHERE Sid NOT IN (SELECT Sid FROM participants WHERE Participants.Aid = ?)");
             pstmt.setInt(1, athleteId);
@@ -1494,7 +1495,7 @@ public class Solution {
         PreparedStatement pstmt = null;
         try {
             pstmt = connection.prepareStatement("SELECT city FROM Sports" +
-                    " GROUP BY city ORDER BY AVG(counter) DESC, city ASC");
+                    " GROUP BY city ORDER BY AVG(counter) DESC, city DESC");
             ResultSet results = pstmt.executeQuery();
             if(!results.next()){ //no cities
                 return "";
@@ -1528,13 +1529,10 @@ public class Solution {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
         ArrayList<Integer> arrayList = new ArrayList<>();
-        ArrayList<Integer> errorList = new ArrayList<>();
-        for(int i=0; i<3; i++){
-            errorList.add(0);
-        }
+        ArrayList<Integer> errorList = new ArrayList<Integer>(Arrays.asList(0,0,0));
         try {
             pstmt = connection.prepareStatement("SELECT golds,silvers,bronzes FROM MedalsScoreView" +
-                    " WHERE Aid = ?");
+                    " WHERE id = ?");
             pstmt.setInt(1, athleteId);
             ResultSet results = pstmt.executeQuery();
             if(!results.next()){ //not active

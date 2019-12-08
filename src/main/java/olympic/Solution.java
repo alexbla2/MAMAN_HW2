@@ -135,7 +135,7 @@ public class Solution {
         PreparedStatement pstmt = null;
         try {
 
-            pstmt = connection.prepareStatement("CREATE VIEW MedalsScoreView AS\n"+
+            pstmt = connection.prepareStatement("CREATE OR REPLACE VIEW MedalsScoreView AS\n"+
                     "(\n" +
                     "   SELECT a1.id,COALESCE(gold,0) AS Golds,COALESCE(silver,0) AS Silvers,COALESCE(bronze,0) AS Bronzes,(COALESCE(gold,0)*3 + COALESCE(silver,0)*2 + COALESCE(bronze,0)) AS score\n " +
                     " FROM\n" +
@@ -266,7 +266,8 @@ public class Solution {
                     "    Aid2 INTEGER ,\n" +
                     "    PRIMARY KEY (Aid1,Aid2),\n" +
                     "    FOREIGN KEY (Aid1) REFERENCES Athletes (id) ON DELETE CASCADE,\n" +
-                    "    FOREIGN KEY (Aid2) REFERENCES Athletes (id) ON DELETE CASCADE\n" +
+                    "    FOREIGN KEY (Aid2) REFERENCES Athletes (id) ON DELETE CASCADE,\n" +
+                    "    CHECK (Aid1 <> Aid2)\n" +
                     ")");
             pstmt.execute();
         } catch (SQLException e) {
@@ -1142,9 +1143,6 @@ public class Solution {
 
     public static ReturnValue makeFriends(Integer athleteId1, Integer athleteId2) {
 
-        if(athleteId1 == athleteId2) //check if bad parameters
-            return BAD_PARAMS;
-
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
         PreparedStatement pstmt1 = null;
@@ -1192,6 +1190,11 @@ public class Solution {
             }
 
         } catch (SQLException e) {
+            //if athleteId1==athleteId2
+            if(Integer.valueOf(e.getSQLState()) ==
+                    PostgreSQLErrorCodes.CHECK_VIOLATION.getValue()) {
+                return BAD_PARAMS;
+            }
             return ERROR;
             //e.printStackTrace()();
         }
@@ -1603,10 +1606,153 @@ public class Solution {
     }
 
     public static ArrayList<Integer> getCloseAthletes(Integer athleteId) {
-        return new ArrayList<>();
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        PreparedStatement pstmt2 = null;
+        ArrayList<Integer> arrayList = new ArrayList<>();
+        ArrayList<Integer> errorList = new ArrayList<>();
+        int number_of_sports;
+        try {
+            //check if athlete exists
+            pstmt = connection.prepareStatement("SELECT Id From Athletes" +
+                    " Where Id = ?");
+            pstmt.setInt(1,athleteId);
+            ResultSet results=pstmt.executeQuery();
+            if(!results.next())
+                return errorList;
+
+            //count number of sports athletes attends
+            pstmt = connection.prepareStatement("SELECT COUNT(*) FROM (SELECT sid FROM participants WHERE aid = ?) AS sports ");
+            pstmt.setInt(1, athleteId);
+            results = pstmt.executeQuery();
+
+            pstmt2 = connection.prepareStatement("SELECT aid,same_sports  FROM(" +
+                    " SELECT a1.aid,COUNT(*) AS same_sports FROM( " +
+                    " (SELECT aid,sid FROM participants where aid !=?) as a1 " +
+                    " INNER JOIN " +
+                    " (SELECT sid FROM participants WHERE aid = ?) as a2 " +
+                    " ON a1.sid = a2.sid )GROUP BY (aid) ) AS sports WHERE 2*same_sports >= ? ORDER BY aid LIMIT 10 ");
+
+            pstmt2.setInt(1, athleteId);
+            pstmt2.setInt(2, athleteId);
+
+            if (!results.next()) { //should not happen
+                return errorList;
+            } else { //there is such active athelete
+                number_of_sports = results.getInt(1); //get number of sprts athletes is attending
+
+                pstmt2.setInt(3, number_of_sports);
+
+
+                if(number_of_sports==0) { //athelte is not participating in any sport
+                    pstmt2 = connection.prepareStatement("SELECT id FROM Athletes WHERE id!= ? ORDER BY id LIMIT 10");
+                    pstmt2.setInt(1, athleteId);
+                }
+                results = pstmt2.executeQuery();
+                while (results.next()) {
+                    arrayList.add(results.getInt(1));
+
+                }
+                return arrayList;
+            }
+        } catch (SQLException e) {
+            return errorList;
+        }
+        //e.printStackTrace()();
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                return errorList;
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                return errorList;
+                //e.printStackTrace()();
+            }
+        }
+
+
     }
 
     public static ArrayList<Integer> getSportsRecommendation(Integer athleteId) {
-        return new ArrayList<>();
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        PreparedStatement pstmt2 = null;
+        ArrayList<Integer> arrayList = new ArrayList<>();
+        ArrayList<Integer> errorList = new ArrayList<>();
+        int number_of_sports;
+        try {
+            //check if athlete exists
+            pstmt = connection.prepareStatement("SELECT Id From Athletes" +
+                    " Where Id = ?");
+            pstmt.setInt(1,athleteId);
+            ResultSet results=pstmt.executeQuery();
+            if(!results.next())
+                return errorList;
+
+            pstmt = connection.prepareStatement("SELECT COUNT(*) FROM (SELECT sid FROM participants WHERE aid = ?) AS sports ");
+            pstmt.setInt(1, athleteId);
+            results = pstmt.executeQuery();
+
+            pstmt2 = connection.prepareStatement("SELECT sports.sid AS sidd,COUNT(*) AS popularity FROM(" +
+                    "(SELECT aid,sid FROM participants WHERE sid NOT IN(SELECT sid FROM participants WHERE aid=?)) AS sports " +
+                    " INNER JOIN " +
+                    " (SELECT aid  FROM(" +
+                    " SELECT a1.aid,count(*) AS same_sports FROM( " +
+                    " (SELECT aid,sid FROM participants where aid !=?) as a1 " +
+                    " INNER JOIN " +
+                    " (SELECT sid FROM participants WHERE aid = ?) as a2 " +
+                    " ON a1.sid = a2.sid )GROUP BY (aid) ) AS fooo WHERE 2*same_sports >= ?) AS close_atht " +
+                    "ON sports.aid = close_atht.aid ) " +
+                    "GROUP BY(sidd) ORDER BY popularity DESC, sidd ASC " +
+                    " LIMIT 3");
+
+            pstmt2.setInt(1, athleteId);
+            pstmt2.setInt(2, athleteId);
+            pstmt2.setInt(3, athleteId);
+            if (!results.next()) { //not active athletes
+                return errorList;
+            } else { //there is such active athelete
+                number_of_sports = results.getInt(1);
+
+                pstmt2.setInt(4, number_of_sports);
+
+
+                if(number_of_sports==0) {
+                    pstmt2 = connection.prepareStatement("SELECT sports.sid AS sidd, COUNT(*) AS popularity FROM" +
+                            "(SELECT sid FROM participants LIMIT 10) AS sports " +
+                            "GROUP BY(sidd)" +
+                            " ORDER BY popularity DESC, sidd ASC " +
+                            "LIMIT 3");
+
+                }
+                results = pstmt2.executeQuery();
+                while (results.next()) {
+                    arrayList.add(results.getInt(1));
+
+                }
+                return arrayList;
+            }
+        } catch (SQLException e) {
+            return errorList;
+        }
+        //e.printStackTrace()();
+        finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                return errorList;
+                //e.printStackTrace()();
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                return errorList;
+                //e.printStackTrace()();
+            }
+        }
     }
 }

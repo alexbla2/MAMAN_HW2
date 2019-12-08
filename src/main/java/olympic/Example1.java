@@ -24,11 +24,11 @@ public class Example1 {
         Test_4_getMostRatedAthletes();
 
         //TODO uncomment after implementation
-//        Solution.clearTables();
-//        Test_5_getCloseAthletes();
-//        Solution.clearTables();
-//        Test_6_getSportsRecommendation();
-//        Solution.dropTables();
+        Solution.clearTables();
+        Test_5_getCloseAthletes();
+        Solution.clearTables();
+        Test_6_getSportsRecommendation();
+        Solution.dropTables();
     }
 
     public static void Test_1_Basic() {

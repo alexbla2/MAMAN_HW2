@@ -1723,7 +1723,7 @@ public class Solution {
 
                 if(number_of_sports==0) {
                     pstmt2 = connection.prepareStatement("SELECT sports.sid AS sidd, COUNT(*) AS popularity FROM" +
-                            "(SELECT sid FROM participants LIMIT 10) AS sports " +
+                            "(SELECT aid,sid FROM participants ORDER BY aid LIMIT 10) AS sports " +
                             "GROUP BY(sidd)" +
                             " ORDER BY popularity DESC, sidd ASC " +
                             "LIMIT 3");

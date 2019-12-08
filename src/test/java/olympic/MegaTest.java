@@ -394,8 +394,8 @@ public class MegaTest extends AbstractTest {
         }
         Solution.athleteJoinSport(14,1);
         expected.clear();
-        expected.add(11);
         expected.add(13);
+        expected.add(11);
         assertEquals(expected, Solution.getSportsRecommendation(1));   // only recommendation is 13
         Solution.deleteAthlete(Solution.getAthleteProfile(1));
         expected.clear();
